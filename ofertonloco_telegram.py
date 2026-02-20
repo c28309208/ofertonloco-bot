@@ -124,12 +124,16 @@ def buscar_y_publicar():
                     img_url = imagen['src'] if imagen else None
 
                     # Calcular descuento
-                    try:
-                        antes = float(precio_antes.replace(",", ""))
-                        ahora = float(precio_ahora.replace(",", ""))
-                        descuento = str(int((1 - ahora / antes) * 100))
-                    except:
-                        descuento = "?"
+                   try:
+    antes = float(precio_antes.replace(",", ""))
+    ahora = float(precio_ahora.replace(",", ""))
+    if antes <= ahora:
+        continue
+    descuento = str(int((1 - ahora / antes) * 100))
+    if int(descuento) < 10:
+        continue
+except:
+    continue
 
                     exito = enviar_telegram(titulo.text.strip(), precio_antes, precio_ahora, descuento, url_afiliado, img_url)
                     if exito:
