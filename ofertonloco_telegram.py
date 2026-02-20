@@ -61,7 +61,7 @@ headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 memoria_ram = []
 
 def enviar_telegram(titulo, precio, url_afiliado, img_url):
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+    fecha = datetime.now(tz).strftime("%d/%m/%Y %H:%M")
     texto = (
         "OFERTA\n\n"
         + titulo[:40] + "\n\n"
