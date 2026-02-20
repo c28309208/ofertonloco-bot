@@ -37,7 +37,7 @@ def guardar_memoria(links):
 def enviar_telegram(titulo, precio, url_afiliado, img_url):
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
     texto = (
-        "OFERTA DEL DIA - OFERTONLOCO\n\n"
+        "OFERTA\n\n"
         + titulo[:40] + "\n\n"
         + "Precio: $" + precio + " MXN\n\n"
         + "Compra aqui:\n"
