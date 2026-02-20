@@ -40,37 +40,6 @@ CATEGORIAS = [
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 memoria_ram = []
 
-def extraer_precio_original(item):
-    # Intento 1: etiqueta <s> clasica
-    s_tag = item.find("s")
-    if s_tag:
-        return s_tag.get_text(strip=True)
-
-    # Intento 2: clase con 'original' o 'strike' o 'previous'
-    for tag in item.find_all(True):
-        clases = " ".join(tag.get("class", []))
-        if any(x in clases for x in ["original", "strike", "previous", "before"]):
-            txt = tag.get_text(strip=True)
-            if "$" in txt or any(c.isdigit() for c in txt):
-                return txt
-
-    # Intento 3: buscar el porcentaje de descuento y calcular precio original
-    return None
-
-def extraer_descuento_directo(item):
-    # MercadoLibre a veces muestra "X% OFF" directamente
-    for tag in item.find_all(True):
-        clases = " ".join(tag.get("class", []))
-        if "discount" in clases or "off" in clases.lower():
-            txt = tag.get_text(strip=True)
-            if "%" in txt:
-                try:
-                    pct = int(''.join(filter(str.isdigit, txt.split("%")[0])))
-                    return pct
-                except:
-                    pass
-    return None
-
 def enviar_telegram(titulo, precio_antes, precio_ahora, descuento, url_afiliado, img_url):
     if not titulo or not precio_antes or not precio_ahora or not descuento or not url_afiliado:
         return False
@@ -135,7 +104,6 @@ def buscar_y_publicar():
                     titulo = item.find("h3")
                     link = item.find("a", class_="poly-component__title")
                     imagen = item.find("img", class_="poly-component__picture")
-                    precios = item.find_all("span", class_=lambda c: c and "fraction" in c)
 
                     if not titulo or not link:
                         continue
@@ -146,32 +114,31 @@ def buscar_y_publicar():
                     if url_afiliado in memoria_ram:
                         continue
 
-                    precio_ahora_txt = precios[0].text.strip() if precios else None
-                    if not precio_ahora_txt:
+                    # Precio actual
+                    precio_actual_tag = item.find("div", class_="poly-price__current")
+                    if not precio_actual_tag:
+                        continue
+                    fraccion_actual = precio_actual_tag.find("span", class_="andes-money-amount__fraction")
+                    if not fraccion_actual:
+                        continue
+                    precio_ahora_txt = fraccion_actual.get_text(strip=True)
+
+                    # Precio anterior (antes del descuento)
+                    precio_anterior_tag = item.find("span", class_=lambda c: c and "andes-money-amount--previous" in c)
+                    if not precio_anterior_tag:
+                        continue
+                    fraccion_anterior = precio_anterior_tag.find("span", class_="andes-money-amount__fraction")
+                    if not fraccion_anterior:
+                        continue
+                    precio_antes_txt = fraccion_anterior.get_text(strip=True)
+
+                    antes = float(precio_antes_txt.replace(",", ""))
+                    ahora = float(precio_ahora_txt.replace(",", ""))
+
+                    if antes <= ahora:
                         continue
 
-                    # Intenta obtener precio original
-                    precio_original_tag = extraer_precio_original(item)
-                    descuento_directo = extraer_descuento_directo(item)
-
-                    if precio_original_tag:
-                        precio_antes_txt = precio_original_tag.replace("$", "").replace(",", "").strip()
-                        try:
-                            antes = float(precio_antes_txt.replace(",", ""))
-                            ahora = float(precio_ahora_txt.replace(",", ""))
-                            if antes <= ahora:
-                                continue
-                            descuento = int((1 - ahora / antes) * 100)
-                        except:
-                            continue
-                    elif descuento_directo:
-                        # Usa el % que muestra MercadoLibre directamente
-                        descuento = descuento_directo
-                        ahora = float(precio_ahora_txt.replace(",", ""))
-                        antes = ahora / (1 - descuento / 100)
-                        precio_antes_txt = str(int(antes))
-                    else:
-                        continue
+                    descuento = int((1 - ahora / antes) * 100)
 
                     if descuento < 5:
                         continue
