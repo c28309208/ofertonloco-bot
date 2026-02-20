@@ -6,8 +6,9 @@ tz = pytz.timezone("America/Mexico_City")
 import time
 import schedule
 
-BOT_TOKEN = "8593181383:AAFkzs68iwZm9hWx92pEGn9Mk7vwhyKwRS8"
-CANAL = "@ofertonloco0911"
+import os
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+CANAL = os.environ.get("CANAL")
 
 CATEGORIAS = [
     # Tecnologia
