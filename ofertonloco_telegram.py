@@ -128,8 +128,7 @@ def buscar_y_publicar():
 print("OfertonLoco Bot iniciado!")
 buscar_y_publicar()
 
-schedule.every().day.at("09:00").do(buscar_y_publicar)
-schedule.every().day.at("21:00").do(buscar_y_publicar)
+schedule.every(1).hours.do(buscar_y_publicar)
 
 print("Esperando... (no cerrar)")
 while True:
