@@ -8,13 +8,50 @@ BOT_TOKEN = "8593181383:AAFkzs68iwZm9hWx92pEGn9Mk7vwhyKwRS8"
 CANAL = "@ofertonloco0911"
 
 CATEGORIAS = [
+    # Tecnologia
     "celulares", "laptops", "televisores", "audifonos", "tablets",
     "camaras-fotograficas", "consolas-videojuegos", "smartwatches",
-    "herramientas", "electrodomesticos", "aires-acondicionados",
-    "lavadoras", "refrigeradores", "microondas", "aspiradoras",
-    "muebles", "colchones", "zapatos", "ropa", "perfumes",
-    "maquillaje", "vitaminas-suplementos", "bicicletas", "patinetas",
-    "juguetes", "libros", "impresoras", "monitores", "teclados-mouse", "bocinas",
+    "impresoras", "monitores", "teclados-mouse", "bocinas",
+    "proyectores", "memorias-usb", "discos-duros", "routers",
+    "drones", "camaras-seguridad", "accesorios-celulares",
+    
+    # Hogar
+    "electrodomesticos", "aires-acondicionados", "lavadoras",
+    "refrigeradores", "microondas", "aspiradoras", "licuadoras",
+    "cafeteras", "freidoras-aire", "ventiladores", "calentadores",
+    "muebles", "colchones", "almohadas", "cortinas",
+    "lampara", "organizadores",
+
+    # Moda
+    "zapatos", "ropa", "perfumes", "maquillaje", "bolsas",
+    "relojes", "lentes", "ropa-deportiva", "zapatos-deportivos",
+    "joyeria",
+
+    # Salud y belleza
+    "vitaminas-suplementos", "aparatos-medicos", "cuidado-piel",
+    "cuidado-cabello", "afeitadoras",
+
+    # Deportes
+    "bicicletas", "patinetas", "pesas-gimnasio", "tenis",
+    "equipos-futbol", "albercas-inflables", "campismo",
+
+    # Autos
+    "accesorios-autos", "llantas", "audio-autos", "herramientas-autos",
+
+    # Hogar y jardin
+    "herramientas", "plantas", "semillas", "mangueras",
+    "pinturas", "cerraduras", "escaleras",
+
+    # Bebes y ninos
+    "juguetes", "carriolas", "cunas", "ropa-bebe",
+    "sillas-auto-bebe", "juegos-jardin",
+
+    # Mascotas
+    "perros", "gatos", "accesorios-mascotas", "alimento-mascotas",
+
+    # Otros
+    "libros", "instrumentos-musicales", "arte-manualidades",
+    "videojuegos", "figuras-coleccion",
 ]
 
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
