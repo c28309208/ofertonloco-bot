@@ -102,16 +102,11 @@ def buscar_y_publicar():
                     titulo = item.find("h3")
                     link = item.find("a", class_="poly-component__title")
                     imagen = item.find("img", class_="poly-component__picture")
-
-                    # Buscar precio actual y precio original tachado
                     precios = item.find_all("span", class_=lambda c: c and "fraction" in c)
                     precio_original_tag = item.find("s")
 
-                    if not titulo or not link:
+                    if not titulo or not link or not precio_original_tag:
                         continue
-
-                    if not precio_original_tag:
-                        continue  # Solo publicar si tiene precio tachado (descuento real)
 
                     url = link['href'].split("#")[0]
                     url_afiliado = url + "?tracking_id=gioponce11"
@@ -119,23 +114,26 @@ def buscar_y_publicar():
                     if url_afiliado in memoria_ram:
                         continue
 
-                    precio_antes = precio_original_tag.get_text(strip=True).replace("$", "").replace(",", "").strip()
-                    precio_ahora = precios[0].text.strip() if precios else "Ver precio"
+                    precio_antes_txt = precio_original_tag.get_text(strip=True).replace("$", "").strip()
+                    precio_ahora_txt = precios[0].text.strip() if precios else None
+
+                    if not precio_ahora_txt:
+                        continue
+
+                    antes = float(precio_antes_txt.replace(",", ""))
+                    ahora = float(precio_ahora_txt.replace(",", ""))
+
+                    if antes <= ahora:
+                        continue
+
+                    descuento = int((1 - ahora / antes) * 100)
+
+                    if descuento < 10:
+                        continue
+
                     img_url = imagen['src'] if imagen else None
 
-                    # Calcular descuento
-                   try:
-    antes = float(precio_antes.replace(",", ""))
-    ahora = float(precio_ahora.replace(",", ""))
-    if antes <= ahora:
-        continue
-    descuento = str(int((1 - ahora / antes) * 100))
-    if int(descuento) < 10:
-        continue
-except:
-    continue
-
-                    exito = enviar_telegram(titulo.text.strip(), precio_antes, precio_ahora, descuento, url_afiliado, img_url)
+                    exito = enviar_telegram(titulo.text.strip(), precio_antes_txt, precio_ahora_txt, str(descuento), url_afiliado, img_url)
                     if exito:
                         memoria_ram.append(url_afiliado)
                         if len(memoria_ram) > 1000:
@@ -148,7 +146,7 @@ except:
             print("  -> Error")
             continue
 
-    print("\nPublicadas: " + str(total) + " ofertas con descuento")
+    print("\nPublicadas: " + str(total) + " ofertas con descuento real")
     print("Proxima en 1 hora")
     print("=" * 40)
 
@@ -160,3 +158,4 @@ print("Esperando...")
 while True:
     schedule.run_pending()
     time.sleep(60)
+
