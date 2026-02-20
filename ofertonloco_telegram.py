@@ -2,71 +2,52 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import pytz
-tz = pytz.timezone("America/Mexico_City")
 import time
 import schedule
-
 import os
+
+tz = pytz.timezone("America/Mexico_City")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CANAL = os.environ.get("CANAL")
 
 CATEGORIAS = [
-    # Tecnologia
     "celulares", "laptops", "televisores", "audifonos", "tablets",
     "camaras-fotograficas", "consolas-videojuegos", "smartwatches",
     "impresoras", "monitores", "teclados-mouse", "bocinas",
     "proyectores", "memorias-usb", "discos-duros", "routers",
     "drones", "camaras-seguridad", "accesorios-celulares",
-    
-    # Hogar
     "electrodomesticos", "aires-acondicionados", "lavadoras",
     "refrigeradores", "microondas", "aspiradoras", "licuadoras",
     "cafeteras", "freidoras-aire", "ventiladores", "calentadores",
     "muebles", "colchones", "almohadas", "cortinas",
     "lampara", "organizadores",
-
-    # Moda
     "zapatos", "ropa", "perfumes", "maquillaje", "bolsas",
     "relojes", "lentes", "ropa-deportiva", "zapatos-deportivos",
-    "joyeria",
-
-    # Salud y belleza
-    "vitaminas-suplementos", "aparatos-medicos", "cuidado-piel",
-    "cuidado-cabello", "afeitadoras",
-
-    # Deportes
+    "joyeria", "vitaminas-suplementos", "aparatos-medicos",
+    "cuidado-piel", "cuidado-cabello", "afeitadoras",
     "bicicletas", "patinetas", "pesas-gimnasio", "tenis",
     "equipos-futbol", "albercas-inflables", "campismo",
-
-    # Autos
     "accesorios-autos", "llantas", "audio-autos", "herramientas-autos",
-
-    # Hogar y jardin
     "herramientas", "plantas", "semillas", "mangueras",
     "pinturas", "cerraduras", "escaleras",
-
-    # Bebes y ninos
     "juguetes", "carriolas", "cunas", "ropa-bebe",
     "sillas-auto-bebe", "juegos-jardin",
-
-    # Mascotas
     "perros", "gatos", "accesorios-mascotas", "alimento-mascotas",
-
-    # Otros
     "libros", "instrumentos-musicales", "arte-manualidades",
     "videojuegos", "figuras-coleccion",
 ]
 
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-
 memoria_ram = []
 
-def enviar_telegram(titulo, precio, url_afiliado, img_url):
+def enviar_telegram(titulo, precio_antes, precio_ahora, descuento, url_afiliado, img_url):
     fecha = datetime.now(tz).strftime("%d/%m/%Y %H:%M")
     texto = (
-        "OFERTA\n\n"
-        + titulo[:40] + "\n\n"
-        + "Precio: $" + precio + " MXN\n\n"
+        "OFERTA DEL DIA\n\n"
+        + titulo[:50] + "\n\n"
+        + "Antes: $" + precio_antes + " MXN\n"
+        + "AHORA: $" + precio_ahora + " MXN\n"
+        + "Ahorras: " + descuento + "%\n\n"
         + "Compra aqui:\n"
         + url_afiliado + "\n\n"
         + fecha
@@ -97,7 +78,7 @@ def enviar_telegram(titulo, precio, url_afiliado, img_url):
 def buscar_y_publicar():
     global memoria_ram
     print("\n" + "=" * 40)
-    print("Iniciando: " + datetime.now().strftime("%d/%m/%Y %H:%M"))
+    print("Iniciando: " + datetime.now(tz).strftime("%d/%m/%Y %H:%M"))
     print("=" * 40)
 
     total = 0
@@ -119,34 +100,51 @@ def buscar_y_publicar():
             for item in items[:5]:
                 try:
                     titulo = item.find("h3")
-                    precio = item.find("span", class_=lambda c: c and "fraction" in c)
                     link = item.find("a", class_="poly-component__title")
                     imagen = item.find("img", class_="poly-component__picture")
 
-                    if titulo and link:
-                        url = link['href'].split("#")[0]
-                        url_afiliado = url + "?tracking_id=gioponce11"
+                    # Buscar precio actual y precio original tachado
+                    precios = item.find_all("span", class_=lambda c: c and "fraction" in c)
+                    precio_original_tag = item.find("s")
 
-                        if url_afiliado in memoria_ram:
-                            continue
+                    if not titulo or not link:
+                        continue
 
-                        precio_txt = precio.text.strip() if precio else "Ver precio"
-                        img_url = imagen['src'] if imagen else None
+                    if not precio_original_tag:
+                        continue  # Solo publicar si tiene precio tachado (descuento real)
 
-                        exito = enviar_telegram(titulo.text.strip(), precio_txt, url_afiliado, img_url)
-                        if exito:
-                            memoria_ram.append(url_afiliado)
-                            if len(memoria_ram) > 1000:
-                                memoria_ram = memoria_ram[-1000:]
-                            total += 1
-                            time.sleep(3)
+                    url = link['href'].split("#")[0]
+                    url_afiliado = url + "?tracking_id=gioponce11"
+
+                    if url_afiliado in memoria_ram:
+                        continue
+
+                    precio_antes = precio_original_tag.get_text(strip=True).replace("$", "").replace(",", "").strip()
+                    precio_ahora = precios[0].text.strip() if precios else "Ver precio"
+                    img_url = imagen['src'] if imagen else None
+
+                    # Calcular descuento
+                    try:
+                        antes = float(precio_antes.replace(",", ""))
+                        ahora = float(precio_ahora.replace(",", ""))
+                        descuento = str(int((1 - ahora / antes) * 100))
+                    except:
+                        descuento = "?"
+
+                    exito = enviar_telegram(titulo.text.strip(), precio_antes, precio_ahora, descuento, url_afiliado, img_url)
+                    if exito:
+                        memoria_ram.append(url_afiliado)
+                        if len(memoria_ram) > 1000:
+                            memoria_ram = memoria_ram[-1000:]
+                        total += 1
+                        time.sleep(3)
                 except:
                     continue
         except:
             print("  -> Error")
             continue
 
-    print("\nPublicadas: " + str(total) + " ofertas nuevas")
+    print("\nPublicadas: " + str(total) + " ofertas con descuento")
     print("Proxima en 1 hora")
     print("=" * 40)
 
@@ -154,7 +152,7 @@ print("OfertonLoco Bot iniciado!")
 buscar_y_publicar()
 schedule.every(1).hours.do(buscar_y_publicar)
 
-print("Esperando... (no cerrar)")
+print("Esperando...")
 while True:
     schedule.run_pending()
     time.sleep(60)
