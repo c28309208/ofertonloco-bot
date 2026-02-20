@@ -1,13 +1,11 @@
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-import json
 import time
 import schedule
 
 BOT_TOKEN = "8593181383:AAFkzs68iwZm9hWx92pEGn9Mk7vwhyKwRS8"
 CANAL = "@ofertonloco0911"
-ARCHIVO_MEMORIA = "memoria.json"
 
 CATEGORIAS = [
     "celulares", "laptops", "televisores", "audifonos", "tablets",
@@ -21,18 +19,7 @@ CATEGORIAS = [
 
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-def cargar_memoria():
-    try:
-        with open(ARCHIVO_MEMORIA, "r") as f:
-            return json.load(f)
-    except:
-        return []
-
-def guardar_memoria(links):
-    if len(links) > 1000:
-        links = links[-1000:]
-    with open(ARCHIVO_MEMORIA, "w") as f:
-        json.dump(links, f)
+memoria_ram = []
 
 def enviar_telegram(titulo, precio, url_afiliado, img_url):
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -42,7 +29,7 @@ def enviar_telegram(titulo, precio, url_afiliado, img_url):
         + "Precio: $" + precio + " MXN\n\n"
         + "Compra aqui:\n"
         + url_afiliado + "\n\n"
-        + "Publicado: " + fecha
+        + fecha
     )
     try:
         if img_url:
@@ -61,19 +48,18 @@ def enviar_telegram(titulo, precio, url_afiliado, img_url):
             print("  -> Publicada: " + titulo[:40])
             return True
         else:
-            print("  -> Error Telegram: " + str(r.json()))
+            print("  -> Error: " + str(r.json()))
             return False
     except Exception as e:
         print("  -> Error: " + str(e))
         return False
 
 def buscar_y_publicar():
+    global memoria_ram
     print("\n" + "=" * 40)
     print("Iniciando: " + datetime.now().strftime("%d/%m/%Y %H:%M"))
     print("=" * 40)
 
-    links_publicados = cargar_memoria()
-    nuevos_links = []
     total = 0
 
     for i, cat in enumerate(CATEGORIAS):
@@ -101,7 +87,7 @@ def buscar_y_publicar():
                         url = link['href'].split("#")[0]
                         url_afiliado = url + "?tracking_id=gioponce11"
 
-                        if url_afiliado in links_publicados:
+                        if url_afiliado in memoria_ram:
                             continue
 
                         precio_txt = precio.text.strip() if precio else "Ver precio"
@@ -109,7 +95,9 @@ def buscar_y_publicar():
 
                         exito = enviar_telegram(titulo.text.strip(), precio_txt, url_afiliado, img_url)
                         if exito:
-                            nuevos_links.append(url_afiliado)
+                            memoria_ram.append(url_afiliado)
+                            if len(memoria_ram) > 1000:
+                                memoria_ram = memoria_ram[-1000:]
                             total += 1
                             time.sleep(3)
                 except:
@@ -118,16 +106,12 @@ def buscar_y_publicar():
             print("  -> Error")
             continue
 
-    links_publicados.extend(nuevos_links)
-    guardar_memoria(links_publicados)
-
     print("\nPublicadas: " + str(total) + " ofertas nuevas")
-    print("Proxima publicacion a las 9am o 9pm")
+    print("Proxima en 1 hora")
     print("=" * 40)
 
 print("OfertonLoco Bot iniciado!")
 buscar_y_publicar()
-
 schedule.every(1).hours.do(buscar_y_publicar)
 
 print("Esperando... (no cerrar)")
