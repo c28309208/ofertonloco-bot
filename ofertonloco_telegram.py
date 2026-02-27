@@ -211,34 +211,63 @@ def enviar_msg(chat_id, texto):
         pass
 
 # ─────────────────────────────────────────
-# CATEGORÍAS
+# CATEGORÍAS — Divididas en 5 grupos (una ronda por horario)
+# Horarios México: 8am, 11am, 2pm, 5pm, 8pm
+# En UTC (México = UTC-6): 14:00, 17:00, 20:00, 23:00, 02:00
 # ─────────────────────────────────────────
-CATEGORIAS = [
-    "celulares", "laptops", "televisores", "audifonos", "tablets",
-    "camaras-fotograficas", "consolas-videojuegos", "smartwatches",
-    "impresoras", "monitores", "teclados-mouse", "bocinas",
-    "proyectores", "memorias-usb", "discos-duros", "routers",
-    "drones", "camaras-seguridad", "accesorios-celulares",
-    "electrodomesticos", "aires-acondicionados", "lavadoras",
-    "refrigeradores", "microondas", "aspiradoras", "licuadoras",
-    "cafeteras", "freidoras-aire", "ventiladores", "calentadores",
-    "muebles", "colchones", "almohadas", "cortinas",
-    "lampara", "organizadores",
-    "zapatos", "ropa", "perfumes", "maquillaje", "bolsas",
-    "relojes", "lentes", "ropa-deportiva", "zapatos-deportivos",
-    "joyeria", "vitaminas-suplementos", "aparatos-medicos",
-    "cuidado-piel", "cuidado-cabello", "afeitadoras",
-    "bicicletas", "patinetas", "pesas-gimnasio", "tenis",
-    "equipos-futbol", "albercas-inflables", "campismo",
-    "accesorios-autos", "llantas", "audio-autos", "herramientas-autos",
-    "herramientas", "plantas", "semillas", "mangueras",
-    "pinturas", "cerraduras", "escaleras",
-    "juguetes", "carriolas", "cunas", "ropa-bebe",
-    "sillas-auto-bebe", "juegos-jardin",
-    "perros", "gatos", "accesorios-mascotas", "alimento-mascotas",
-    "libros", "instrumentos-musicales", "arte-manualidades",
-    "videojuegos", "figuras-coleccion",
-]
+GRUPOS_CATEGORIAS = {
+    "grupo_1_tecnologia": [
+        "celulares", "laptops", "televisores", "audifonos", "tablets",
+        "camaras-fotograficas", "consolas-videojuegos", "smartwatches",
+        "impresoras", "monitores", "teclados-mouse", "bocinas",
+        "proyectores", "memorias-usb", "discos-duros", "routers",
+        "drones", "camaras-seguridad", "accesorios-celulares",
+    ],
+    "grupo_2_hogar": [
+        "electrodomesticos", "aires-acondicionados", "lavadoras",
+        "refrigeradores", "microondas", "aspiradoras", "licuadoras",
+        "cafeteras", "freidoras-aire", "ventiladores", "calentadores",
+        "muebles", "colchones", "almohadas", "cortinas",
+        "lampara", "organizadores",
+    ],
+    "grupo_3_moda": [
+        "zapatos", "ropa", "perfumes", "maquillaje", "bolsas",
+        "relojes", "lentes", "ropa-deportiva", "zapatos-deportivos",
+        "joyeria", "vitaminas-suplementos", "aparatos-medicos",
+        "cuidado-piel", "cuidado-cabello", "afeitadoras",
+    ],
+    "grupo_4_deportes_autos": [
+        "bicicletas", "patinetas", "pesas-gimnasio", "tenis",
+        "equipos-futbol", "albercas-inflables", "campismo",
+        "accesorios-autos", "llantas", "audio-autos", "herramientas-autos",
+        "herramientas", "plantas", "semillas", "mangueras",
+        "pinturas", "cerraduras", "escaleras",
+    ],
+    "grupo_5_familia": [
+        "juguetes", "carriolas", "cunas", "ropa-bebe",
+        "sillas-auto-bebe", "juegos-jardin",
+        "perros", "gatos", "accesorios-mascotas", "alimento-mascotas",
+        "libros", "instrumentos-musicales", "arte-manualidades",
+        "videojuegos", "figuras-coleccion",
+    ],
+}
+
+# Para compatibilidad con funciones que usen CATEGORIAS directamente
+CATEGORIAS = [cat for grupo in GRUPOS_CATEGORIAS.values() for cat in grupo]
+
+# Horarios en UTC para Railway (México = UTC-6)
+# 9am  MX → 15:00 UTC
+# 10am MX → 16:00 UTC
+# 3pm  MX → 21:00 UTC
+# 4pm  MX → 22:00 UTC
+# 8pm  MX → 02:00 UTC (siguiente día)
+HORARIOS_UTC = {
+    "15:00": "grupo_1_tecnologia",       # 9am  México
+    "16:00": "grupo_2_hogar",            # 10am México
+    "21:00": "grupo_3_moda",             # 3pm  México
+    "22:00": "grupo_4_deportes_autos",   # 4pm  México
+    "02:00": "grupo_5_familia",          # 8pm  México
+}
 
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 memoria_ram = []
@@ -411,15 +440,23 @@ def enviar_facebook(titulo, precio_antes, precio_ahora, descuento, url_afiliado,
 # ─────────────────────────────────────────
 # SCRAPER
 # ─────────────────────────────────────────
-def buscar_y_publicar():
+def buscar_y_publicar(nombre_grupo=None):
     global memoria_ram
+    # Si se pasa un grupo, publicar solo ese grupo; si no, publicar todas las categorías
+    if nombre_grupo and nombre_grupo in GRUPOS_CATEGORIAS:
+        cats = GRUPOS_CATEGORIAS[nombre_grupo]
+        etiqueta = nombre_grupo.replace("_", " ").upper()
+    else:
+        cats = CATEGORIAS
+        etiqueta = "TODAS LAS CATEGORIAS"
+
     print("\n" + "=" * 45)
-    print("Iniciando: " + datetime.now(tz).strftime("%d/%m/%Y %H:%M"))
+    print(f"Iniciando [{etiqueta}]: " + datetime.now(tz).strftime("%d/%m/%Y %H:%M"))
     print("=" * 45)
     total = 0
 
-    for i, cat in enumerate(CATEGORIAS):
-        print(f"({i+1}/{len(CATEGORIAS)}) {cat}")
+    for i, cat in enumerate(cats):
+        print(f"({i+1}/{len(cats)}) {cat}")
         try:
             r = requests.get(
                 f"https://listado.mercadolibre.com.mx/{cat}",
@@ -506,7 +543,7 @@ def buscar_y_publicar():
             continue
 
     print(f"\n✅ Publicadas: {total} ofertas")
-    print("Próxima revisión en 2 horas")
+    print("Próxima publicación según horario del día")
     print("=" * 45)
 
 # ─────────────────────────────────────────
@@ -914,8 +951,21 @@ def hilo_rifa():
         time.sleep(2)
 
 def hilo_ofertas():
-    buscar_y_publicar()
-    schedule.every(2).hours.do(buscar_y_publicar)
+    # Publicar el grupo que corresponde según la hora actual al arrancar
+    hora_actual = datetime.now(pytz.utc).strftime("%H:%M")
+    if hora_actual in HORARIOS_UTC:
+        grupo = HORARIOS_UTC[hora_actual]
+        print(f"[Ofertas] Publicando al arrancar: {grupo}")
+        buscar_y_publicar(grupo)
+
+    # Programar cada grupo en su horario UTC
+    for hora_utc, nombre_grupo in HORARIOS_UTC.items():
+        schedule.every().day.at(hora_utc).do(buscar_y_publicar, nombre_grupo=nombre_grupo)
+        hora_mx = datetime.strptime(hora_utc, "%H:%M")
+        hora_mx_ajustada = (hora_mx.hour - 6) % 24
+        print(f"[Ofertas] Programado: {nombre_grupo.split('_',2)[-1]:20s} → {hora_mx_ajustada:02d}:00 MX ({hora_utc} UTC)")
+
+    print("[Ofertas] Scheduler activo ✓")
     while True:
         schedule.run_pending()
         time.sleep(30)
@@ -928,7 +978,7 @@ t_ofertas.start()
 
 print("=" * 45)
 print("✅ Bot corriendo en 2 hilos paralelos:")
-print("   Hilo 1 — Ofertas: publica cada 2 horas")
+print("   Hilo 1 — Ofertas: 5 grupos, 1 publicacion por horario (8am, 11am, 2pm, 5pm, 8pm MX)")
 print("   Hilo 2 — Rifa: responde mensajes cada 2s")
 print("=" * 45)
 print("Ctrl+C para detener")
